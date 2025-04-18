@@ -1,0 +1,22 @@
+{
+  "name": "load-tester-api",
+  "version": "1.0.0",
+  "description": "API para fazer o backend do load-tester",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luisfelix-93/load-tester-api.git"
+  },
+  "author": "Luis Felipe F. Filho",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/luisfelix-93/load-tester-api/issues"
+  },
+  "homepage": "https://github.com/luisfelix-93/load-tester-api#readme",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
