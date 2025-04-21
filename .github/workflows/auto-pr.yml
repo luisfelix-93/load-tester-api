@@ -3,7 +3,7 @@ name: Auto PR on Push
 on:
   push:
     branches:
-      - '*'  # Monitora todas as branches (exceto tags)
+      - '*'  # Monitora todas as branches (exceto tags) -
 
 jobs:
   create-pr:
