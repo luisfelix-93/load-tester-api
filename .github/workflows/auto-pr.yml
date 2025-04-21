@@ -1,0 +1,61 @@
+name: Auto PR on Push
+
+on:
+  push:
+    branches:
+      - '*'  # Monitora todas as branches (exceto tags)
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v3
+
+      - name: Criar Pull Request automaticamente
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { GITHUB_REF, GITHUB_TOKEN } = process.env;
+            const branch = GITHUB_REF.replace('refs/heads/', '');
+            const baseBranch = 'main';
+
+            // Ignorar branch main e branches de tags
+            // teste
+            if (branch === baseBranch || GITHUB_REF.startsWith('refs/tags/')) {
+              console.log(`Branch ${branch} ignorada.`);
+              return;
+            }
+
+            // Verificar PRs existentes
+            const existingPRs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: branch,
+              base: baseBranch,
+              state: 'open'
+            });
+
+            if (existingPRs.data.length > 0) {
+              console.log(`PR existente: ${existingPRs.data[0].html_url}`);
+              return;
+            }
+
+            // Criar novo PR
+            try {
+              const pr = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Auto] ${branch} → ${baseBranch}`,
+                head: branch,
+                base: baseBranch,
+                body: 'PR gerado automaticamente pelo GitHub Actions',
+                draft: false
+              });
+              console.log(`PR criado: ${pr.data.html_url}`);
+            } catch (error) {
+              core.setFailed(`Erro ao criar PR: ${error.message}`);
+            }
