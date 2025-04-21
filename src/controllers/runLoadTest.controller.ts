@@ -11,15 +11,15 @@ export class RunLoadTestController {
     async runLoadTest(req: Request, res: Response): Promise<void> {
         const { targetUrl, numRequests, concurrency } = req.body;
         if (!targetUrl || !numRequests || !concurrency) {
-            res.status(400).json({ error: 'Missing required fields' });
+            res.status(400).json({ error: 'Parâmetros são necessários para realizar o teste' });
             return;
         }
         try {
-            await this.useCase.execute(targetUrl, numRequests, concurrency);
-            res.status(201).json({ message: 'Load test completed successfully' });
+            const loadTest = await this.useCase.execute(targetUrl, numRequests, concurrency);
+            res.status(201).json({ message: 'Teste de carga completo com sucesso', data: loadTest });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: `An error occurred while running the load test: ${error}` });
+            res.status(500).json({ error: `Um erro ocorreu ao tentar realizar o teste de carga: ${error}` });
         }
     }
 
@@ -31,7 +31,7 @@ export class RunLoadTestController {
         try {
             const loadTestData = await this.service.getTestById(id);
             if (!loadTestData) {
-                res.status(404).json({ error: 'Load test not found' });
+                res.status(404).json({ error: 'Teste não encontrado' });
                 return;
             }
             res.status(200).json(loadTestData);
@@ -48,7 +48,7 @@ export class RunLoadTestController {
             res.status(200).json(loadTests);
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'An error occurred while fetching load tests' });
+            res.status(500).json({ error: `Um erro aconteceu ao realizar o teste de carga: ${error}`});
         }
     }
 

@@ -4,7 +4,7 @@ import { calcStats } from "../utils/calcStats";
 import { makeRequest } from "../utils/makeRequest";
 
 export interface IRunLoadTestUseCase {
-    execute(targetUrl: string, numRequests: number, concurrency: number):Promise<void>;
+    execute(targetUrl: string, numRequests: number, concurrency: number):Promise<ILoadTest>;
 }
 
 export class RunLoadTestUseCase implements IRunLoadTestUseCase{
@@ -57,7 +57,7 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase{
         }
         await this.service.saveTest(loadTestData);
 
-
+        return loadTestData;
 
     }
 }
