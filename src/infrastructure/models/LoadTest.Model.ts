@@ -6,7 +6,14 @@ const LoadTestSchema = new Schema<ILoadTest>({
   requests: { type
     : Number, required: true },
   concurrency: { type: Number, required: true },
-  result: {
+  result: [
+    {
+      n: { type: Number, required: true },
+      codeStatus: { type: Number, required: true },
+      responseTime: { type: Number, required: true },
+    },
+  ],
+  stats: {
     successCount: { type: Number, required: true },
     failedCount: { type: Number, required: true },
     requestsPerSecond: { type: Number, required: true },

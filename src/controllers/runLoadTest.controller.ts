@@ -16,7 +16,7 @@ export class RunLoadTestController {
         }
         try {
             const loadTest = await this.useCase.execute(targetUrl, numRequests, concurrency);
-            res.status(201).json({ message: 'Teste de carga completo com sucesso', data: loadTest });
+            res.status(201).json({ message: 'Teste de carga completo com sucesso', data: loadTest, _id: loadTest._id });
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: `Um erro ocorreu ao tentar realizar o teste de carga: ${error}` });
@@ -49,6 +49,31 @@ export class RunLoadTestController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: `Um erro aconteceu ao realizar o teste de carga: ${error}`});
+        }
+    }
+
+    async getTestsByDate(req: Request, res: Response): Promise<void> {
+        const { startDate, endDate } = req.query;
+    
+        if (!startDate || !endDate) {
+            res.status(400).json({ error: 'É necessário fornecer data inicial e final' });
+            return;
+        }
+    
+        try {
+            const start = new Date(startDate as string);
+            const end = new Date(endDate as string);
+    
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                res.status(400).json({ error: 'Formato de data inválido' });
+                return;
+            }
+    
+            const tests = await this.service.getTestByDateRange(start, end);
+            res.status(200).json(tests);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Erro ao buscar testes por data' });
         }
     }
 

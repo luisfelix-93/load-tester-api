@@ -19,12 +19,14 @@
   },
   "homepage": "https://github.com/luisfelix-93/load-tester-api#readme",
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/follow-redirects": "^1.14.4",
     "@types/mongoose": "^5.11.96",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongoose": "^8.13.2"
   }
