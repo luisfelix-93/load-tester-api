@@ -5,6 +5,7 @@ export interface ILoadTestService {
     saveTest(data: ILoadTest): Promise<ILoadTest>;
     listsTest(): Promise<ILoadTest[]>;
     getTestById(id: string): Promise<ILoadTest | null>;
+    getTestByDateRange(startDate: Date, endDate: Date): Promise<ILoadTest[]>
 }
 
 export class LoadTestService implements ILoadTestService {
@@ -20,5 +21,9 @@ export class LoadTestService implements ILoadTestService {
 
     async getTestById(id: string): Promise<ILoadTest | null> {
         return await this.repository.findById(id);
+    }
+
+    async getTestByDateRange(startDate: Date, endDate: Date): Promise<ILoadTest[]> {
+        return await this.repository.findByDateRange(startDate, endDate);
     }
 }

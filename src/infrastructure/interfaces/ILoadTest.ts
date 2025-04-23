@@ -1,9 +1,15 @@
 
 export interface ILoadTest {
+    [x: string]: any;
     url: string;
     requests: number;
     concurrency: number;
-    result: {
+    result: { 
+      n: number; 
+      codeStatus: number; 
+      responseTime: number; 
+    }[];
+    stats: {
       successCount: number;
       failedCount: number;
       requestsPerSecond: number;

@@ -18,7 +18,9 @@ export class LoadTestRouter {
     private setupRoutes (controller: RunLoadTestController) {
         this.router.post('/', controller.runLoadTest.bind(controller));
         this.router.get('/', controller.getAllLoadTests.bind(controller));
-        this.router.get('/:id', controller.getLoadTestResults.bind(controller));
+        this.router.get('/test/:id', controller.getLoadTestResults.bind(controller));
+        this.router.get('/by-date', (req, res) => controller.getTestsByDate(req, res));
+
     }
 }
 
