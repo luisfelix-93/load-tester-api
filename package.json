@@ -2,7 +2,7 @@
   "name": "load-tester-api",
   "version": "1.0.0",
   "description": "API para fazer o backend do load-tester",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
@@ -22,14 +22,12 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/follow-redirects": "^1.14.4",
-    "@types/mongoose": "^5.11.96",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "mongoose": "^8.13.2",
     "uuid": "^11.1.0"
   }
 }

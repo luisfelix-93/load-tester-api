@@ -1,6 +1,4 @@
-import { Model } from "mongoose";
 import { ILoadTest } from "../interfaces/ILoadTest";
-import { LoadTestModel } from "../models/LoadTest.Model";
 
 export interface ILoadTestRepository {
     save(loadTest: ILoadTest): Promise<ILoadTest>;

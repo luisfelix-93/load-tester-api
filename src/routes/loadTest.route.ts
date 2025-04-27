@@ -2,8 +2,6 @@ import { Router } from 'express';
 import { RunLoadTestController } from '../controllers/runLoadTest.controller';
 import { RunLoadTestUseCase } from '../usecases/runLoadTest.usecase';
 import { LoadTestService } from '../services/LoadTestService';
-import { ILoadTest } from '../infrastructure/interfaces/ILoadTest';
-import { LoadTestModel } from '../infrastructure/models/LoadTest.Model';
 import { ILoadTestRepository, LoadTestRepository } from '../infrastructure/repositories/LoadTestRepository';
 
 
