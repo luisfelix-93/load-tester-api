@@ -2,72 +2,58 @@ import { ILoadTest } from "../infrastructure/interfaces/ILoadTest";
 import { ILoadTestService } from "../services/LoadTestService";
 import { calcStats } from "../utils/calcStats";
 import { makeRequest } from "../utils/makeRequest";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IRunLoadTestUseCase {
-    execute(targetUrl: string, numRequests: number, concurrency: number):Promise<ILoadTest>;
+    execute(targetUrl: string, numRequests: number, concurrency: number): Promise<ILoadTest>;
 }
 
-export class RunLoadTestUseCase implements IRunLoadTestUseCase{
-    constructor(private readonly service: ILoadTestService){}
+export class RunLoadTestUseCase implements IRunLoadTestUseCase {
+    constructor(private readonly service: ILoadTestService) {}
 
-    async execute(targetUrl: string, numRequests: number, concurrency: number) {
-        const statsRaw: any[] = [];
-        const result: { n: number; codeStatus: number; responseTime: number}[] = []
+    async execute(targetUrl: string, numRequests: number, concurrency: number): Promise<ILoadTest> {
+        const results: {
+            n: number;
+            codeStatus: number;
+            responseTime: number;
+            timeToFirstByte?: number;
+            timeToLastByte?: number;
+        }[] =[];
+
         let requestSent = 0;
         const testStartTime = Date.now();
 
         async function worker() {
             while (requestSent < numRequests) {
-                const currentRequest =  requestSent++;
-                const startTime = Date.now()
-                try {
-                    const response = await fetch(targetUrl);
-                    const endTime = Date.now();
-
-                    result.push({
-                        n: currentRequest,
-                        codeStatus: response.status,
-                        responseTime: endTime - startTime
-                    });
-                    statsRaw.push({
-                        codeStatus: response.status,
-                        totalTime: endTime - startTime,
-                        timeToFirstByte: endTime - startTime, // simulação simplificada
-                        timeToLastByte: endTime - startTime,
-                    })
-                } catch (error) {
-                    const failTime = Date.now();
-                    result.push({
-                        n: currentRequest,
-                        codeStatus: 0, // 0 indica erro de rede ou timeout
-                        responseTime: failTime - startTime,
-                    });
-
-                    statsRaw.push({
-                        statusCode: 0,
-                        totalTime: failTime - startTime,
-                    });
-                }
+                const currentRequest = requestSent ++;
+                const stat = await makeRequest(targetUrl);
+                results.push({
+                    n: currentRequest,
+                    codeStatus: stat.codeStatus,
+                    responseTime: stat.responseTime,
+                    timeToFirstByte: stat.timeToFirstByte,
+                    timeToLastByte: stat.timeToLastByte
+                });
             }
         }
 
-        const workers: Promise<void> [] = [];
+        const workers : Promise<void>[] =[];
         for (let i = 0; i < concurrency; i++) {
             workers.push(worker());
         }
 
         await Promise.all(workers);
         const testEndTime = Date.now();
-    
-        const successCount = statsRaw.filter(s => s.statusCode >= 200 && s.statusCode < 300).length;
-        const failedCount = statsRaw.length - successCount;
 
         const totalTestTimeSeconds = (testEndTime - testStartTime) / 1000;
         const requestsPerSecond = numRequests / totalTestTimeSeconds;
 
-        const totalTimes = statsRaw.map(s => s.totalTime / 1000);
-        const ttfbTimes = statsRaw.filter(s => s.timeToFirstByte !== undefined).map(s => (s.timeToFirstByte as number) / 1000);
-        const ttlbTimes = statsRaw.filter(s => s.timeToLastByte !== undefined).map(s => (s.timeToLastByte as number) / 1000);
+        const successCount = results.filter(r => r.codeStatus >= 200 && r.codeStatus < 300).length;
+        const failedCount = results.length - successCount;
+
+        const totalTimes = results.map(r => r.responseTime / 1000);
+        const ttfbTimes = results.filter(r => r.timeToFirstByte !== undefined).map(r => (r.timeToFirstByte as number) / 1000);
+        const ttlbTimes = results.filter(r => r.timeToLastByte !== undefined).map(r => (r.timeToLastByte as number) / 1000);
 
         const stats = {
             successCount,
@@ -75,21 +61,20 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase{
             requestsPerSecond,
             totalTime: calcStats(totalTimes),
             timeToFirstByte: calcStats(ttfbTimes),
-            timeToLastByte: calcStats(ttlbTimes),
+            timeToLastByte: calcStats(ttlbTimes)
         };
 
         const loadTestData: ILoadTest = {
+            _id: uuidv4(),
             url: targetUrl,
             requests: numRequests,
             concurrency,
-            result,
+            result: results,
             stats,
-            createdAt: new Date(),
+            createdAt: new Date()
         };
-
-    const loadTestSaved = await this.service.saveTest(loadTestData);
-
-    return loadTestSaved;
+        const loadTest = await this.service.saveTest(loadTestData);
+        return loadTest;
 
     }
 }

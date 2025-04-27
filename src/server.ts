@@ -5,7 +5,7 @@ import cors from 'cors';
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:5173' ,
+    origin: '*' ,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -13,7 +13,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/load-test', makeLoadTestRouter());
-connectMongo();
+// connectMongo();
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);

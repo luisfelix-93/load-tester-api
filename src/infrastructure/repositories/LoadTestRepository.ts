@@ -10,29 +10,23 @@ export interface ILoadTestRepository {
 }
 
 export class LoadTestRepository implements ILoadTestRepository {
-    private model: Model<ILoadTest>;
-    constructor(loadTestModel: Model<ILoadTest>) {
-        this.model = loadTestModel;
-    }
+    private readonly tests: ILoadTest[] = [];
 
     async save(loadTest: ILoadTest): Promise<ILoadTest> {
-        return await this.model.create(loadTest);
+        const newTest = {...loadTest, createdAt: new Date()};
+        this.tests.push(newTest);
+        return newTest;
     }
 
     async findAll(): Promise<ILoadTest[]> {
-        return await this.model.find().sort({ createdAt: -1 });
+        return this.tests;
     }
 
     async findById(id: string): Promise<ILoadTest | null> {
-        return await this.model.findById(id);
+        return this.tests.find(test => test._id === id) || null;
     }
 
     async findByDateRange(startDate: Date, endDate: Date): Promise<ILoadTest[]> {
-        return await this.model.find({
-            createdAt: {
-                $gte: startDate,
-                $lte: endDate
-            }
-        })
+        return this.tests.filter(test => test.createdAt && test.createdAt >= startDate && test.createdAt <= endDate);
     }
 }
