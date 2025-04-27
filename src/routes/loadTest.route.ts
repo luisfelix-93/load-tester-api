@@ -25,7 +25,7 @@ export class LoadTestRouter {
 }
 
 export function makeLoadTestRouter() {
-    const repository: ILoadTestRepository = new LoadTestRepository(LoadTestModel);
+    const repository: ILoadTestRepository = new LoadTestRepository();
     const service: LoadTestService = new LoadTestService(repository);
     const useCase: RunLoadTestUseCase = new RunLoadTestUseCase(service);
     const controller: RunLoadTestController = new RunLoadTestController(useCase, service);
