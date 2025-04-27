@@ -1,35 +1,43 @@
-# Etapa 1 - Build da aplicação
-FROM node:18 AS builder
+# ========================
+# 1ª Etapa: Build
+# ========================
+FROM node:20-alpine AS builder
 
-# Diretório de trabalho dentro do container
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos necessários
+# Copiar package.json e package-lock.json (se tiver) primeiro para aproveitar cache
 COPY package*.json ./
-COPY tsconfig*.json ./
-COPY src ./src
 
-# Instala as dependências
+# Instalar apenas dependências de desenvolvimento para compilar
 RUN npm install
 
-# Compila o código TypeScript para JavaScript
+# Copiar o restante dos arquivos
+COPY . .
+
+# Compilar o TypeScript
 RUN npm run build
 
-# Etapa 2 - Imagem final para produção
-FROM node:18
+# ========================
+# 2ª Etapa: Runtime (produção)
+# ========================
+FROM node:20-alpine
 
-# Diretório da aplicação
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Copia apenas os arquivos necessários para rodar a aplicação
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/dist ./dist
-
-# Instala apenas as dependências de produção
+# Copiar apenas o que precisa para rodar
+COPY package*.json ./
 RUN npm install --only=production
 
-# Define a porta exposta
+# Copiar o resultado do build
+COPY --from=builder /app/dist ./dist
+
+# Variável de ambiente opcional
+ENV NODE_ENV=production
+
+# Expor a porta (muda se sua app ouvir em outra porta)
 EXPOSE 4000
 
-# Comando para iniciar a aplicação
+# Comando para iniciar
 CMD ["node", "dist/server.js"]
