@@ -16,6 +16,7 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase {
             n: number;
             codeStatus: number;
             responseTime: number;
+            status: string;
             timeToFirstByte?: number;
             timeToLastByte?: number;
         }[] =[];
@@ -31,6 +32,7 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase {
                     n: currentRequest,
                     codeStatus: stat.codeStatus,
                     responseTime: stat.responseTime,
+                    status: stat.status,
                     timeToFirstByte: stat.timeToFirstByte,
                     timeToLastByte: stat.timeToLastByte
                 });

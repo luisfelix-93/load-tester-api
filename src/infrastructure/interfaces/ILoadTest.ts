@@ -8,6 +8,7 @@ export interface ILoadTest {
       n: number; 
       codeStatus: number; 
       responseTime: number; 
+      status: string;
     }[];
     stats: {
       successCount: number;
