@@ -1,12 +1,14 @@
-name: Auto PR on Push
+name: Create PR after Tests
 
 on:
-  push:
-    branches:
-      - '*'  # Monitora todas as branches (exceto tags) -
+  workflow_run:
+    workflows: ["Run Tests"]
+    types:
+      - completed
 
 jobs:
   create-pr:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
