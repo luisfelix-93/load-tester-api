@@ -13,30 +13,29 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Criar Pull Request automaticamente
         uses: actions/github-script@v6
         with:
           script: |
-            const { GITHUB_REF, GITHUB_TOKEN } = process.env;
-            const branch = GITHUB_REF.replace('refs/heads/', '');
+            const branch = '${{ github.event.workflow_run.head_branch }}';
             const baseBranch = 'main';
 
-            // Ignorar branch main e branches de tags
-            // teste
-            if (branch === baseBranch || GITHUB_REF.startsWith('refs/tags/')) {
-              console.log(`Branch ${branch} ignorada.`);
+            if (branch === baseBranch) {
+              console.log(`Branch ${branch} é a base. Nada será feito.`);
               return;
             }
 
-            // Verificar PRs existentes
             const existingPRs = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              head: branch,
+              head: `${context.repo.owner}:${branch}`,
               base: baseBranch,
               state: 'open'
             });
@@ -46,7 +45,6 @@ jobs:
               return;
             }
 
-            // Criar novo PR
             try {
               const pr = await github.rest.pulls.create({
                 owner: context.repo.owner,
