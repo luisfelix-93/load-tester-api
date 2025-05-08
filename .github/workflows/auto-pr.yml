@@ -1,12 +1,26 @@
-name: Auto PR on Push
+name: Run Tests and Create PR
 
 on:
   push:
     branches:
-      - '*'  # Monitora todas as branches (exceto tags) -
+      - '*'  # Monitora todas as branches
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - run: npm ci
+      - run: npm test
+
   create-pr:
+    needs: test  # Só roda se o job "test" passar
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,22 +33,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { GITHUB_REF, GITHUB_TOKEN } = process.env;
-            const branch = GITHUB_REF.replace('refs/heads/', '');
+            const branch = '${{ github.ref_name }}';
             const baseBranch = 'main';
 
-            // Ignorar branch main e branches de tags
-            // teste
-            if (branch === baseBranch || GITHUB_REF.startsWith('refs/tags/')) {
-              console.log(`Branch ${branch} ignorada.`);
+            if (branch === baseBranch) {
+              console.log(`Branch ${branch} é a base. Nada será feito.`);
               return;
             }
 
-            // Verificar PRs existentes
             const existingPRs = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              head: branch,
+              head: `${context.repo.owner}:${branch}`,
               base: baseBranch,
               state: 'open'
             });
@@ -44,7 +54,6 @@ jobs:
               return;
             }
 
-            // Criar novo PR
             try {
               const pr = await github.rest.pulls.create({
                 owner: context.repo.owner,
@@ -52,7 +61,7 @@ jobs:
                 title: `[Auto] ${branch} → ${baseBranch}`,
                 head: branch,
                 base: baseBranch,
-                body: 'PR gerado automaticamente pelo GitHub Actions',
+                body: 'PR gerado automaticamente após os testes passarem',
                 draft: false
               });
               console.log(`PR criado: ${pr.data.html_url}`);
