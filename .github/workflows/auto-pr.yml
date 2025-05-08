@@ -1,30 +1,39 @@
-name: Create PR after Tests
+name: Run Tests and Create PR
 
 on:
-  workflow_run:
-    workflows: ["Run Tests"]
-    types:
-      - completed
+  push:
+    branches:
+      - '*'  # Monitora todas as branches
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - run: npm ci
+      - run: npm test
+
   create-pr:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: test  # Só roda se o job "test" passar
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Criar Pull Request automaticamente
         uses: actions/github-script@v6
         with:
           script: |
-            const branch = '${{ github.event.workflow_run.head_branch }}';
+            const branch = '${{ github.ref_name }}';
             const baseBranch = 'main';
 
             if (branch === baseBranch) {
@@ -52,7 +61,7 @@ jobs:
                 title: `[Auto] ${branch} → ${baseBranch}`,
                 head: branch,
                 base: baseBranch,
-                body: 'PR gerado automaticamente pelo GitHub Actions',
+                body: 'PR gerado automaticamente após os testes passarem',
                 draft: false
               });
               console.log(`PR criado: ${pr.data.html_url}`);
