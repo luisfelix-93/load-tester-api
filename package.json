@@ -4,7 +4,8 @@
   "description": "API para fazer o backend do load-tester",
   "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --watch --config jest.config.js",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -22,6 +23,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/follow-redirects": "^1.14.4",
+    "@types/jest": "^29.5.14",
+    "ts-jest": "^29.3.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
