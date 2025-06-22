@@ -9,13 +9,29 @@ export class RunLoadTestController {
     ) {}
 
     async runLoadTest(req: Request, res: Response): Promise<void> {
-        const { targetUrl, numRequests, concurrency } = req.body;
+        const { 
+            targetUrl, 
+            numRequests, 
+            concurrency,
+            method = 'GET',
+            payload,
+            headers,
+            timeout
+         } = req.body;
         if (!targetUrl || !numRequests || !concurrency) {
             res.status(400).json({ error: 'Parâmetros são necessários para realizar o teste' });
             return;
         }
         try {
-            const loadTest = await this.useCase.execute(targetUrl, numRequests, concurrency);
+            const loadTest = await this.useCase.execute(
+                targetUrl, 
+                numRequests, 
+                concurrency,
+                method,
+                payload,
+                headers,
+                timeout
+            );
             res.status(201).json({ message: 'Teste de carga completo com sucesso', data: loadTest, _id: loadTest._id });
         } catch (error) {
             console.error(error);

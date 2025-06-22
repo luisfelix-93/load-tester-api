@@ -1,17 +1,33 @@
 import { ILoadTest } from "../infrastructure/interfaces/ILoadTest";
 import { ILoadTestService } from "../services/LoadTestService";
 import { calcStats } from "../utils/calcStats";
-import { makeRequest } from "../utils/makeRequest";
+import { makeRequest, MakeRequestOptions } from "../utils/makeRequest";
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IRunLoadTestUseCase {
-    execute(targetUrl: string, numRequests: number, concurrency: number): Promise<ILoadTest>;
+    execute(
+        targetUrl: string, 
+        numRequests: number, 
+        concurrency: number,
+        method?: string,
+        payload?: any,
+        headers?: Record<string, string>,
+        timeout?: number
+    ): Promise<ILoadTest>;
 }
 
 export class RunLoadTestUseCase implements IRunLoadTestUseCase {
     constructor(private readonly service: ILoadTestService) {}
 
-    async execute(targetUrl: string, numRequests: number, concurrency: number): Promise<ILoadTest> {
+    async execute(
+        targetUrl: string, 
+        numRequests: number, 
+        concurrency: number,
+        method: string = 'GET',
+        payload?: any,
+        headers?: Record<string, string>,
+        timeout?: number
+    ): Promise<ILoadTest> {
         const results: {
             n: number;
             codeStatus: number;
@@ -27,7 +43,8 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase {
         async function worker() {
             while (requestSent < numRequests) {
                 const currentRequest = requestSent ++;
-                const stat = await makeRequest(targetUrl);
+                const opts: MakeRequestOptions = { method, headers, payload, timeout}
+                const stat = await makeRequest(targetUrl, opts);
                 results.push({
                     n: currentRequest,
                     codeStatus: stat.codeStatus,
