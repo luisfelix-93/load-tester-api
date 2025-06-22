@@ -34,7 +34,7 @@ jobs:
         with:
           script: |
             const branch = '${{ github.ref_name }}';
-            const baseBranch = 'main';
+            const baseBranch = 'v1';
 
             if (branch === baseBranch) {
               console.log(`Branch ${branch} é a base. Nada será feito.`);
