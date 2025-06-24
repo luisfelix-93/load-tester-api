@@ -92,14 +92,33 @@ A `LoadTesterAPI` é uma ferramenta para realizar testes de carga em endpoints H
 
 #### a. runLoadTest
 Inicia um teste de carga.
-##### Request Body
+#### Request Body
 ```json
 {
-  "targetUrl": "string", // URL do endpoint a ser testado
-  "numRequests": "number", // Número total de requisições a serem enviadas
-  "concurrency": "number" // Número de requisições simultâneas
+  "targetUrl": "string",      // URL do endpoint a ser testado
+  "numRequests": "number",    // Número total de requisições a serem enviadas
+  "concurrency": "number",    // Número de requisições simultâneas
+  "method": "string",         // (opcional) Método HTTP, ex: "POST"
+  "payload": { ... },         // (opcional) Corpo da requisição para métodos como POST/PUT
+  "headers": { ... },         // (opcional) Cabeçalhos HTTP personalizados
+  "timeout": "number"         // (opcional) Timeout em ms
 }
 ```
+
+#### Exemplo de requisição POST com payload
+```bash
+curl -X POST http://localhost:4000/load-test \
+-H "Content-Type: application/json" \
+-d '{
+  "targetUrl": "https://api.exemplo.com/endpoint",
+  "numRequests": 50,
+  "concurrency": 5,
+  "method": "POST",
+  "payload": { "nome": "Fulano", "idade": 30 },
+  "headers": { "Authorization": "Bearer seu_token" }
+}'
+```
+
 ##### Response
 - **201 Created**: Retorna os resultados do teste de carga.
 ```json
@@ -226,12 +245,41 @@ curl -X GET "http://localhost:4000/load-test/by-date?startDate=2023-01-01&endDat
 - **500 Internal Server Error**: Verifique os logs do servidor para mais detalhes.
 
 ---
+## 6. Testes Automatizados
 
-## 6. Configuração
+Este projeto possui testes unitários para os principais fluxos da API, utilizando [Jest](https://jestjs.io/) e [ts-jest](https://kulshekhar.github.io/ts-jest/).
+
+### Como rodar os testes
+
+```bash
+# Execute todos os testes unitários
+npm test
+
+# Ou rode em modo watch (útil durante o desenvolvimento)
+npm run test:watch
+```
+
+### O que é testado?
+
+- **Controllers**: Validação dos fluxos de entrada e saída, tratamento de erros e integração com os serviços.
+- **UseCases**: Execução do teste de carga, cálculo de estatísticas, contagem de sucessos/falhas e persistência dos resultados.
+
+Os arquivos de teste estão localizados em:
+- `src/controllers/runLoadTest.controller.spec.ts`
+- `src/usecases/runLoadTest.usecase.spec.ts`
+
+Os testes cobrem:
+- Sucesso e falha ao criar um teste de carga
+- Busca de resultados por ID e por intervalo de datas
+- Cálculo correto de estatísticas e contagem de requisições bem-sucedidas/falhas
+
+---
+
+## 7. Configuração
 - Porta padrão: `4000` (pode ser alterada via variável de ambiente `PORT`).
 - Certifique-se de configurar o arquivo `.env` para variáveis sensíveis.
 
 ---
 
-## 7. Licença
+## 8. Licença
 Este projeto está licenciado sob a [MIT License](LICENSE).
