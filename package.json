@@ -1,6 +1,6 @@
 {
   "name": "load-tester-api",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "API para fazer o backend do load-tester",
   "main": "dist/server.js",
   "scripts": {
