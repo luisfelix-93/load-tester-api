@@ -1,0 +1,42 @@
+name: Update Parent Submodule on Merge
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    update-parent:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Parent Repository
+              uses: actions/checkout@v2
+              with: 
+                repository: luisfelix-93/load-tester
+                token: ${{ secrets.GITHUB_TOKEN }}
+                ref: prod
+            - name: Gerar data no formato YYYYmmDD
+              id: get_date
+              run: |
+                date=$(date +%Y%m%d)
+                echo "date_tag=$date" >> $GITHUB_OUTPUT
+            - name: Update submodule reference
+              run: |
+                git config --global user.name "github-actions[bot]"
+                git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                git submodule update --remote --merge
+                git add .
+                git commit -m "${{ steps.get_date.outputs.date_tag }} - Update submodule reference to latest commit"
+            
+            - name: Create Pull Request
+              uses: peter-evans/create-pull-request@v6
+              with: 
+                token: ${{ secrets.GITHUB_TOKEN }}
+                commit-message: "${{ steps.get_date.outputs.date_tag}} - chore: Update submodule ${{ github.repository }}"
+                title: "Atualização automática do submódulo ${{ github.repository }}"
+                body: "Este PR atualiza o submódulo  ${{ github.repository }} para o commit mais recent após o merge na branch main."
+                branch: "auto/update-submodule-${{ github.event.after }}"
+                base: "prod"
+                labels: |
+                    automation
+                    submodule
