@@ -24,10 +24,19 @@ jobs:
               run: |
                 git config --global user.name "github-actions[bot]"
                 git config --global user.email "github-actions[bot]@users.noreply.github.com"
-                git submodule update --remote --merge
-                git add .
-                git commit -m "${{ steps.get_date.outputs.date_tag }} - Update submodule reference to latest commit"
-            
+          
+                git submodule update --remote --init --recursive
+          
+                # Verifica se há alterações no índice (submódulo atualizado)
+                if git diff --exit-code --quiet; then
+                  echo "has_changes=false" >> $GITHUB_OUTPUT
+                  echo "No changes detected in submodule reference."
+                else
+                  echo "has_changes=true" >> $GITHUB_OUTPUT # Marca que houve mudanças
+                  echo "Changes detected in submodule reference. Staging commit..."
+                  git add .
+                  git commit -m "chore: Update submodule ${{ github.repository }} to ${{ github.sha }}"
+                fi
             - name: Create Pull Request
               uses: peter-evans/create-pull-request@v6
               with: 
