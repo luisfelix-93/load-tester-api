@@ -84,7 +84,6 @@ export class RunLoadTestUseCase implements IRunLoadTestUseCase {
         };
 
         const loadTestData: ILoadTest = {
-            _id: uuidv4(),
             url: targetUrl,
             requests: numRequests,
             concurrency,

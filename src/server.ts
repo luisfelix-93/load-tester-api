@@ -1,7 +1,10 @@
 import express from 'express';
 import { makeLoadTestRouter } from './routes/loadTest.route';
 import cors from 'cors';
+import { connectMongoDB } from './infrastructure/database';
 const app = express();
+
+connectMongoDB();
 
 app.use(cors({
     origin: '*' ,
