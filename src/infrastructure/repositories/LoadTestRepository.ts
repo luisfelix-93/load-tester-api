@@ -19,7 +19,7 @@ export class LoadTestRepository implements ILoadTestRepository {
     }
 
     async findById(id: string): Promise<ILoadTest | null> {
-        return LoadTestModel.findById(id).lean() as Promise<ILoadTest | null>;
+        return LoadTestModel.findOne({testId: id}).lean(id) as Promise<ILoadTest | null>;
     }
 
     async findByDateRange(startDate: Date, endDate: Date): Promise<ILoadTest[]> {

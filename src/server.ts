@@ -2,6 +2,7 @@ import express from 'express';
 import { makeLoadTestRouter } from './routes/loadTest.route';
 import cors from 'cors';
 import { connectMongoDB } from './infrastructure/database';
+import { config } from './infrastructure/config';
 const app = express();
 
 connectMongoDB();
@@ -15,7 +16,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/load-test', makeLoadTestRouter());
-const PORT = process.env.PORT || 4000;
+const PORT = config.APIPort;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });

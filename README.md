@@ -1,206 +1,184 @@
 # LoadTesterAPI
 
-Uma ferramenta de teste de carga simples para APIs HTTP/HTTPS, desenvolvida em Node.js com TypeScript.
+Uma ferramenta de teste de carga para APIs HTTP/HTTPS, desenvolvida em Node.js com TypeScript e uma arquitetura escalável de microsserviços.
 
-Este projeto permite que você envie um grande volume de requisições simultâneas a um endpoint e colete estatísticas detalhadas de desempenho, como:
-- Tempo de resposta total
-- Tempo até o primeiro byte (TTFB)
-- Tempo até o último byte
-- Código de status HTTP
-- Erros de conexão (Timeout, ECONNREFUSED, etc.)
+Este projeto permite agendar testes de carga pesados de forma assíncrona. Ele envia um grande volume de requisições a um endpoint e coleta estatísticas detalhadas de desempenho, que podem ser consultadas posteriormente.
 
 ## 📚 Sumário
 - [Funcionalidades](#1-funcionalidades)
-- [Instalação](#2-instalação)
-- [Uso](#3-uso)
-- [Arquitetura](#4-arquitetura)
+- [Arquitetura](#2-arquitetura)
+- [Pré-requisitos](#3-pré-requisitos)
+- [Instalação e Uso](#4-instalação-e-uso)
 - [Documentação da API](#5-documentação-da-api)
-- [Configuração](#6-configuração)
-- [Licença](#7-licença)
+- [Testes Automatizados](#6-testes-automatizados)
+- [Configuração](#7-configuração)
+- [Licença](#8-licença)
 
 ## 1. Funcionalidades
-- Teste de carga de endpoints HTTP e HTTPS
-- Coleta de métricas detalhadas para cada requisição
-- Detecção e contabilização de erros de conexão
-- UUID para identificar cada execução de teste
-- Resultados retornados em formato JSON estruturado
+----
+-----
+- **Agendamento Assíncrono**: Os testes são agendados e executados em background, sem bloquear a API principal.
+- **Arquitetura Escalável**: Utiliza uma fila de mensagens (BullMQ) e um microsserviço worker dedicado para executar os testes, permitindo escalar o processamento de forma independente.
+- **Métricas Detalhadas**: Coleta estatísticas completas, incluindo tempo de resposta (mín, máx, média), TTFB, contagem de sucesso/falha e vazão (requests/seg).
+- **Persistência de Dados**: Os resultados são salvos em um banco de dados MongoDB para consulta e análise histórica.
+- **Rastreabilidade**: Cada teste é identificado por um `testId` (UUID) único, facilitando o rastreamento do agendamento até o resultado final.
 
 ---
 
-## 2. Instalação
-### 2.1 Instalação via código fonte:
+## 2. Arquitetura
+O projeto utiliza uma arquitetura de microsserviços para desacoplar responsabilidades e melhorar a escalabilidade.
+
+
+O fluxo funciona da seguinte forma:
+1.  **API Principal (Orquestrador)**: Recebe a requisição HTTP para iniciar um teste. Ela não executa o teste, apenas valida os dados, gera um `testId` e adiciona um "job" na fila `load-tester-jobs`.
+2.  **Fila de Mensagens (Redis + BullMQ)**: Atua como um intermediário. Garante que os jobs de teste sejam processados de forma confiável, mesmo que a API ou o worker reiniciem.
+3.  **Microsserviço Worker (Executor)**: É um processo separado que escuta a fila `load-tester-jobs`. Ao receber um job, ele executa o teste de carga pesado. Ao finalizar, envia o resultado para outra fila, a `load-tester-results`.
+4.  **API Worker Interno**: Dentro da API principal, um processo em background escuta a fila `load-tester-results`. Quando um resultado chega, ele o salva no MongoDB, associando-o ao `testId` original.
+
+---
+
+## 3. Pré-requisitos
+- **Node.js** (versão 18 ou superior)
+- **Docker** e **Docker Compose**
+- **Git**
+
+---
+
+## 4. Instalação e Uso
+A maneira mais fácil de executar o projeto completo (API, Redis, MongoDB) é usando Docker Compose.
 
 ```bash
-# Clone o repositório
-$ git clone https://github.com/seu-usuario/load-tester.git
+# 1. Clone o repositório
+$ git clone https://github.com/luisfelix-93/load-tester.git
 
-# Acesse a pasta
-$ cd load-tester
+# 2. Acesse a pasta do projeto
+$ cd load-tester/load-tester-api
 
+# 3. Crie um arquivo .env a partir do exemplo
+# (Ajuste as variáveis se necessário)
+$ cp .env.example .env
+
+# 4. Suba os contêineres (API, Redis, Mongo)
+$ docker-compose up --build
+```
+
+A API estará disponível em `http://localhost:4000`.
+
+### Executando Manualmente (Desenvolvimento)
+
+Se preferir rodar a API localmente sem Docker, você precisará de instâncias do Redis e MongoDB rodando separadamente.
+
+```bash
 # Instale as dependências
 $ npm install
-```
 
-### 2.2 Instalação via Docker
-
-```bash
-# Fazer o build do Dockerfile
-$ docker build -t load-tester-api .
-```
-OU
-
-```bash
-# Fazer o push da imagem do dockerhub
-$ docker push luisfelixfilo\load-tester-api:latest
-```
-
-## 3. Uso
-### 3.1 Uso via código fonte
-```bash
-# Compilar o código
+# Compile o código TypeScript
 $ npm run build
 
-# Iniciar a aplicação
+# Inicie a aplicação
 $ npm run start
 ```
 
-### 3.2 Uso via Docker
-- Após feito o build da imagem, ou push da imagem do docker hub no passo (#instalacao)
-```bash
-$ docker run -d -p 4000:4000 -t load-test-api:latest -n load-test-api
-
-```
-
-## 4. Arquitetura
-- **Controllers**: Recebem as requisições HTTP e chamam os UseCases.
-- **UseCases**: Lógica de negócio do teste de carga.
-- **Entities/DTOs**: Definição de tipos como `ILoadTest`.
-- **Utils**: Função `makeRequest` para medir requisições HTTP/HTTPS com coleta de tempos e códigos de status.
-             Funçao `calcStat` para fazer o calculo de estatísticas da aplicação
-
-----
+---
 
 ## 5. Documentação da API
-A `LoadTesterAPI` é uma ferramenta para realizar testes de carga em endpoints HTTP/HTTPS. Ela permite enviar um grande volume de requisições simultâneas e coletar métricas detalhadas de desempenho.
+A API permite agendar e consultar os resultados dos testes de carga.
+
 ### 5.1 Rotas:
 
-- `POST /load-test`[runLoadTest](#a-runloadtest)
-- `GET /load-test` [getAllLoadTests](#b-getallloadtests)
-- `GET /load-test/test/:id` [getLoadTestResults](#c-getloadtestresults)
-- `GET /by-date?startDate={:dateStart}&endDate={:dateEnd}`[getTestsByDate](#d-gettestsbydate)
-
+- `POST /load-test`runLoadTest
+- `GET /load-test` getAllLoadTests
+- `GET /load-test/test/:id` getLoadTestResults
+- `GET /load-test/by-date?startDate={:dateStart}&endDate={:dateEnd}`getTestsByDate
 
 #### a. runLoadTest
-Inicia um teste de carga.
+Agenda um novo teste de carga de forma **assíncrona**.
+
 #### Request Body
 ```json
 {
   "targetUrl": "string",      // URL do endpoint a ser testado
   "numRequests": "number",    // Número total de requisições a serem enviadas
   "concurrency": "number",    // Número de requisições simultâneas
-  "method": "string",         // (opcional) Método HTTP, ex: "POST"
-  "payload": { ... },         // (opcional) Corpo da requisição para métodos como POST/PUT
-  "headers": { ... },         // (opcional) Cabeçalhos HTTP personalizados
-  "timeout": "number"         // (opcional) Timeout em ms
+----
+  "method": "string",         // (Opcional) Método HTTP, ex: "POST"
+  "payload": { ... },         // (Opcional) Corpo da requisição para métodos como POST/PUT
+  "headers": { ... },         // (Opcional) Cabeçalhos HTTP personalizados
+  "timeout": "number"         // (Opcional) Timeout em ms
 }
 ```
 
-#### Exemplo de requisição POST com payload
-```bash
-curl -X POST http://localhost:4000/load-test \
--H "Content-Type: application/json" \
--d '{
-  "targetUrl": "https://api.exemplo.com/endpoint",
-  "numRequests": 50,
-  "concurrency": 5,
-  "method": "POST",
-  "payload": { "nome": "Fulano", "idade": 30 },
-  "headers": { "Authorization": "Bearer seu_token" }
-}'
-```
+##### Resposta (`202 Accepted`)
+A API responde **imediatamente** que o teste foi agendado. A resposta contém um `testId` que você usará para consultar o resultado final.
 
-##### Response
-- **201 Created**: Retorna os resultados do teste de carga.
 ```json
 {
-  "message": "Teste de carga completo com sucesso",
-  "data": {
-    "_id": "string",
-    "url": "string",
-    "requests": "number",
-    "concurrency": "number",
-    "result": [
-      {
-        "n": "number",
-        "codeStatus": "number",
-        "responseTime": "number",
-        "timeToFirstByte": "number",
-        "timeToLastByte": "number"
-      }
-    ],
-    "stats": {
-      "successCount": "number",
-      "failedCount": "number",
-      "requestsPerSecond": "number",
-      "totalTime": { "min": "number", "max": "number", "avg": "number" },
-      "timeToFirstByte": { "min": "number", "max": "number", "avg": "number" },
-      "timeToLastByte": { "min": "number", "max": "number", "avg": "number" }
-    },
-    "createdAt": "string"
-  }
+  "message": "Teste de carga agendado com sucesso.",
+  "testId": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
 }
 ```
 
-- **400 Bad Request**: Parâmetros ausentes ou inválidos.
-- **500 Internal Server Error**: Erro ao executar o teste.
+**Fluxo de Trabalho do Cliente:**
+1.  Envie a requisição `POST /load-test`.
+2.  Guarde o `testId` retornado.
+3.  Consulte o endpoint `GET /load-test/test/:id` periodicamente (polling) até receber uma resposta `200 OK` com os resultados, ou decida por um timeout.
 
 ---
+
 #### b. getAllLoadTests
 Retorna todos os testes de carga realizados.
 
 ##### Response
 - **200 OK**: Lista de testes realizados.
-```json
-[
-  {
-    "_id": "string",
-    "url": "string",
-    "requests": "number",
-    "concurrency": "number",
-    "stats": {
-      "successCount": "number",
-      "failedCount": "number",
-      "requestsPerSecond": "number",
-      "totalTime": { "min": "number", "max": "number", "avg": "number" },
-      "timeToFirstByte": { "min": "number", "max": "number", "avg": "number" },
-      "timeToLastByte": { "min": "number", "max": "number", "avg": "number" }
-    },
-    "createdAt": "string"
-  }
-]
-```
-
 - **500 Internal Server Error**: Erro ao buscar os testes.
 
 ---
+
 #### c. getLoadTestResults
 Retorna os detalhes de um teste de carga específico.
 
 ##### Path Parameters
-- `id`: ID do teste de carga.
+- `id`: O `testId` (UUID) retornado pela requisição de agendamento.
 
 ##### Response
-- **200 OK**: Detalhes do teste.
-- **404 Not Found**: Teste não encontrado.
+- **200 OK**: Detalhes completos do teste.
+```json
+{
+  "_id": "652f1b7b3f3e8a1d8f3e8a1d",
+  "testId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "url": "https://api.exemplo.com/endpoint",
+  "requests": 50,
+  "concurrency": 5,
+  "result": [
+    {
+      "n": 0,
+      "codeStatus": 200,
+      "responseTime": 150,
+      "status": "Success"
+    }
+  ],
+  "stats": {
+    "successCount": 50,
+    "failedCount": 0,
+    "requestsPerSecond": 45.5,
+    "totalTime": { "min": 120, "max": 180, "avg": 150 },
+    "timeToFirstByte": { "min": 50, "max": 70, "avg": 60 },
+    "timeToLastByte": { "min": 100, "max": 120, "avg": 110 }
+  },
+  "createdAt": "2023-10-17T20:00:00.000Z"
+}
+```
+- **404 Not Found**: Teste não encontrado. Isso pode significar que o `testId` é inválido ou que o teste ainda está em andamento.
 - **500 Internal Server Error**: Erro ao buscar o teste.
 
 ---
+
 #### d. getTestsByDate
 Retorna os testes realizados dentro de um intervalo de datas.
 
 ##### Query Parameters
-- `startDate`: Data inicial no formato ISO (ex.: `2023-01-01`).
-- `endDate`: Data final no formato ISO (ex.: `2023-01-31`).
+- `startDate`: Data inicial no formato ISO (ex: `2023-10-17`).
+- `endDate`: Data final no formato ISO (ex: `2023-10-18`).
 
 ##### Response
 - **200 OK**: Lista de testes no intervalo especificado.
@@ -209,45 +187,10 @@ Retorna os testes realizados dentro de um intervalo de datas.
 
 ---
 
-### 5.2 Exemplo de Uso
-
-#### a. Iniciar um teste de carga
-```bash
-curl -X POST http://localhost:4000/load-test \
--H "Content-Type: application/json" \
--d '{
-  "targetUrl": "https://example.com",
-  "numRequests": 100,
-  "concurrency": 10
-}'
-```
-
-#### b. Listar todos os testes
-```bash
-curl -X GET http://localhost:4000/load-test
-```
-
-#### c. Buscar um teste específico
-```bash
-curl -X GET http://localhost:4000/load-test/test/<id>
-```
-
-#### d. Buscar testes por intervalo de datas
-```bash
-curl -X GET "http://localhost:4000/load-test/by-date?startDate=2023-01-01&endDate=2023-01-31"
-```
-
----
-
-### 5.3 Erros Comuns
-
-- **400 Bad Request**: Certifique-se de enviar todos os parâmetros obrigatórios no formato correto.
-- **500 Internal Server Error**: Verifique os logs do servidor para mais detalhes.
-
----
+----
+----
 ## 6. Testes Automatizados
-
-Este projeto possui testes unitários para os principais fluxos da API, utilizando [Jest](https://jestjs.io/) e [ts-jest](https://kulshekhar.github.io/ts-jest/).
+O projeto utiliza Jest para testes unitários, cobrindo os controllers e a lógica de agendamento.
 
 ### Como rodar os testes
 
@@ -257,29 +200,12 @@ npm test
 
 # Ou rode em modo watch (útil durante o desenvolvimento)
 npm run test:watch
+
 ```
 
-### O que é testado?
-
-- **Controllers**: Validação dos fluxos de entrada e saída, tratamento de erros e integração com os serviços.
-- **UseCases**: Execução do teste de carga, cálculo de estatísticas, contagem de sucessos/falhas e persistência dos resultados.
-
-Os arquivos de teste estão localizados em:
-- `src/controllers/runLoadTest.controller.spec.ts`
-- `src/usecases/runLoadTest.usecase.spec.ts`
-
-Os testes cobrem:
-- Sucesso e falha ao criar um teste de carga
-- Busca de resultados por ID e por intervalo de datas
-- Cálculo correto de estatísticas e contagem de requisições bem-sucedidas/falhas
-
----
-
 ## 7. Configuração
-- Porta padrão: `4000` (pode ser alterada via variável de ambiente `PORT`).
-- Certifique-se de configurar o arquivo `.env` para variáveis sensíveis.
-
----
+-- Porta padrão: 4000 (pode ser alterada via variável de ambiente PORT).
+-- Certifique-se de configurar o arquivo `.env` para variáveis sensíveis.
 
 ## 8. Licença
 Este projeto está licenciado sob a [MIT License](LICENSE).
