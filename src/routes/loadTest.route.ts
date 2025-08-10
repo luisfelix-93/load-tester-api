@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { RunLoadTestController } from '../controllers/runLoadTest.controller';
-import { RunLoadTestUseCase } from '../usecases/runLoadTest.usecase';
 import { LoadTestService } from '../services/LoadTestService';
 import { ILoadTestRepository, LoadTestRepository } from '../infrastructure/repositories/LoadTestRepository';
+import { LoadTesteWorker } from '../infrastructure/jobs/worker';
 
 
 export class LoadTestRouter {
@@ -25,8 +25,9 @@ export class LoadTestRouter {
 export function makeLoadTestRouter() {
     const repository: ILoadTestRepository = new LoadTestRepository();
     const service: LoadTestService = new LoadTestService(repository);
-    const useCase: RunLoadTestUseCase = new RunLoadTestUseCase(service);
-    const controller: RunLoadTestController = new RunLoadTestController(useCase, service);
+    const worker: LoadTesteWorker = new LoadTesteWorker();
+    const controller: RunLoadTestController = new RunLoadTestController(service, worker);
     const router = new LoadTestRouter(controller);
+    worker.loadTestResult();
     return router.router;
 }

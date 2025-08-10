@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: dockerfile
+    ports:
+      - "${API_PORT:-4000}:4000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+      - redis
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

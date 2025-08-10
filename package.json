@@ -24,14 +24,17 @@
     "@types/express": "^5.0.1",
     "@types/follow-redirects": "^1.14.4",
     "@types/jest": "^29.5.14",
+    "@types/mongoose": "^5.11.96",
     "ts-jest": "^29.3.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "bullmq": "^5.56.9",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "follow-redirects": "^1.15.9",
+    "mongoose": "^8.17.0",
     "uuid": "^11.1.0"
   }
 }

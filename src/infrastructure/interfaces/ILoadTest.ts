@@ -1,5 +1,6 @@
 
 export interface ILoadTest {
+    testId: string;
     [x: string]: any;
     url: string;
     requests: number;

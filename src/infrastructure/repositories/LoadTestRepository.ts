@@ -1,4 +1,5 @@
 import { ILoadTest } from "../interfaces/ILoadTest";
+import { LoadTestModel } from "../models/LoadTestModel";
 
 export interface ILoadTestRepository {
     save(loadTest: ILoadTest): Promise<ILoadTest>;
@@ -8,23 +9,22 @@ export interface ILoadTestRepository {
 }
 
 export class LoadTestRepository implements ILoadTestRepository {
-    private readonly tests: ILoadTest[] = [];
-
     async save(loadTest: ILoadTest): Promise<ILoadTest> {
-        const newTest = {...loadTest, createdAt: new Date()};
-        this.tests.push(newTest);
-        return newTest;
+        const doc = await LoadTestModel.create(loadTest);
+        return doc.toObject() as ILoadTest;
     }
 
     async findAll(): Promise<ILoadTest[]> {
-        return this.tests;
+        return LoadTestModel.find().lean() as Promise<ILoadTest[]>;
     }
 
     async findById(id: string): Promise<ILoadTest | null> {
-        return this.tests.find(test => test._id === id) || null;
+        return LoadTestModel.findOne({testId: id}).lean(id) as Promise<ILoadTest | null>;
     }
 
     async findByDateRange(startDate: Date, endDate: Date): Promise<ILoadTest[]> {
-        return this.tests.filter(test => test.createdAt && test.createdAt >= startDate && test.createdAt <= endDate);
+        return LoadTestModel.find({
+            createdAt: { $gte: startDate, $lte: endDate }
+        }).lean() as Promise<ILoadTest[]>;
     }
 }
