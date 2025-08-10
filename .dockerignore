@@ -7,3 +7,4 @@ docker-compose.yml
 .vscode
 .idea
 coverage
+__tests__/

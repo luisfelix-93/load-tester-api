@@ -1,4 +1,7 @@
-# LoadTesterAPI
+# Load Tester API
+
+[![CI/CD](https://github.com/luisfelix-93/load-tester-api/actions/workflows/auto-pr.yml/badge.svg)](https://github.com/luisfelix-93/load-tester-api/actions/workflows/auto-pr.yml)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Uma ferramenta de teste de carga para APIs HTTP/HTTPS, desenvolvida em Node.js com TypeScript e uma arquitetura escalável de microsserviços.
 
@@ -15,19 +18,48 @@ Este projeto permite agendar testes de carga pesados de forma assíncrona. Ele e
 - [Licença](#8-licença)
 
 ## 1. Funcionalidades
-----
------
+
 - **Agendamento Assíncrono**: Os testes são agendados e executados em background, sem bloquear a API principal.
 - **Arquitetura Escalável**: Utiliza uma fila de mensagens (BullMQ) e um microsserviço worker dedicado para executar os testes, permitindo escalar o processamento de forma independente.
 - **Métricas Detalhadas**: Coleta estatísticas completas, incluindo tempo de resposta (mín, máx, média), TTFB, contagem de sucesso/falha e vazão (requests/seg).
 - **Persistência de Dados**: Os resultados são salvos em um banco de dados MongoDB para consulta e análise histórica.
 - **Rastreabilidade**: Cada teste é identificado por um `testId` (UUID) único, facilitando o rastreamento do agendamento até o resultado final.
 
----
-
 ## 2. Arquitetura
+
 O projeto utiliza uma arquitetura de microsserviços para desacoplar responsabilidades e melhorar a escalabilidade.
 
+```mermaid
+sequenceDiagram
+    participant Client as HTTP Client
+    participant API as API Principal (Orquestrador)
+    participant Queue as Fila (Redis + BullMQ)
+    participant Worker as Microsserviço Worker
+    participant Target as API Alvo do Teste
+    participant DB as MongoDB
+
+    Client->>+API: 1. POST /load-test (Agendar Teste)
+    API->>+Queue: 2. Adiciona Job na fila (load-tester-jobs)
+    API-->>-Client: 3. Responde 202 Accepted com testId
+
+    Note right of Worker: Worker é um processo separado que escuta a fila
+    Worker->>+Queue: 4. Pega o Job da fila
+    Worker->>+Target: 5. Executa o teste de carga
+    Target-->>-Worker: Respostas HTTP
+
+    Worker->>+Queue: 6. Envia resultado para a fila (load-tester-results)
+
+    Note right of API: Um listener na API escuta a fila de resultados
+    API->>+Queue: 7. Pega o resultado da fila
+    API->>+DB: 8. Salva o resultado no MongoDB
+
+    loop Consulta Periódica
+        Client->>+API: 9. GET /load-test/test/:id
+        API->>+DB: Busca resultado pelo testId
+        DB-->>-API: Retorna (ou não) o resultado
+        API-->>-Client: 200 OK (com dados) ou 404 (não pronto)
+    end
+```
 
 O fluxo funciona da seguinte forma:
 1.  **API Principal (Orquestrador)**: Recebe a requisição HTTP para iniciar um teste. Ela não executa o teste, apenas valida os dados, gera um `testId` e adiciona um "job" na fila `load-tester-jobs`.
@@ -35,80 +67,70 @@ O fluxo funciona da seguinte forma:
 3.  **Microsserviço Worker (Executor)**: É um processo separado que escuta a fila `load-tester-jobs`. Ao receber um job, ele executa o teste de carga pesado. Ao finalizar, envia o resultado para outra fila, a `load-tester-results`.
 4.  **API Worker Interno**: Dentro da API principal, um processo em background escuta a fila `load-tester-results`. Quando um resultado chega, ele o salva no MongoDB, associando-o ao `testId` original.
 
----
-
 ## 3. Pré-requisitos
+
 - **Node.js** (versão 18 ou superior)
 - **Docker** e **Docker Compose**
 - **Git**
 
----
-
 ## 4. Instalação e Uso
+
 A maneira mais fácil de executar o projeto completo (API, Redis, MongoDB) é usando Docker Compose.
 
 ```bash
 # 1. Clone o repositório
-$ git clone https://github.com/luisfelix-93/load-tester.git
+$ git clone https://github.com/luisfelix-93/load-tester-api.git
 
 # 2. Acesse a pasta do projeto
-$ cd load-tester/load-tester-api
+$ cd load-tester-api
 
 # 3. Crie um arquivo .env a partir do exemplo
-# (Ajuste as variáveis se necessário)
+# (Não é necessário alterar nada para rodar localmente com Docker)
 $ cp .env.example .env
 
-# 4. Suba os contêineres (API, Redis, Mongo)
-$ docker-compose up --build
+# 4. Suba os contêineres (API, Redis, Mongo) em modo "detached" (-d)
+$ docker-compose up --build -d
 ```
 
-A API estará disponível em `http://localhost:4000`.
+A API estará disponível em `http://localhost:4000` (ou na porta que você definir em `.env`).
 
-### Executando Manualmente (Desenvolvimento)
-
-Se preferir rodar a API localmente sem Docker, você precisará de instâncias do Redis e MongoDB rodando separadamente.
-
+Para parar os serviços, execute:
 ```bash
-# Instale as dependências
-$ npm install
-
-# Compile o código TypeScript
-$ npm run build
-
-# Inicie a aplicação
-$ npm run start
+$ docker-compose down
 ```
-
----
 
 ## 5. Documentação da API
+
 A API permite agendar e consultar os resultados dos testes de carga.
 
-### 5.1 Rotas:
+### 5.1 Rotas
 
-- `POST /load-test`runLoadTest
-- `GET /load-test` getAllLoadTests
-- `GET /load-test/test/:id` getLoadTestResults
-- `GET /load-test/by-date?startDate={:dateStart}&endDate={:dateEnd}`getTestsByDate
+- `POST /load-test`
+- `GET /load-test`
+- `GET /load-test/test/:id`
+- `GET /load-test/by-date`
 
-#### a. runLoadTest
+--- 
+
+#### **POST /load-test**
+
 Agenda um novo teste de carga de forma **assíncrona**.
 
-#### Request Body
+**Request Body**
 ```json
 {
   "targetUrl": "string",      // URL do endpoint a ser testado
   "numRequests": "number",    // Número total de requisições a serem enviadas
   "concurrency": "number",    // Número de requisições simultâneas
-----
-  "method": "string",         // (Opcional) Método HTTP, ex: "POST"
+  "method": "string",        // (Opcional) Método HTTP, ex: "POST"
   "payload": { ... },         // (Opcional) Corpo da requisição para métodos como POST/PUT
   "headers": { ... },         // (Opcional) Cabeçalhos HTTP personalizados
   "timeout": "number"         // (Opcional) Timeout em ms
 }
 ```
 
-##### Resposta (`202 Accepted`)
+**Resposta (`202 Accepted`)**
+
 A API responde **imediatamente** que o teste foi agendado. A resposta contém um `testId` que você usará para consultar o resultado final.
 
 ```json
@@ -118,30 +140,19 @@ A API responde **imediatamente** que o teste foi agendado. A resposta contém um
 }
 ```
 
-**Fluxo de Trabalho do Cliente:**
-1.  Envie a requisição `POST /load-test`.
-2.  Guarde o `testId` retornado.
-3.  Consulte o endpoint `GET /load-test/test/:id` periodicamente (polling) até receber uma resposta `200 OK` com os resultados, ou decida por um timeout.
+--- 
 
----
+#### **GET /load-test**
 
-#### b. getAllLoadTests
 Retorna todos os testes de carga realizados.
 
-##### Response
-- **200 OK**: Lista de testes realizados.
-- **500 Internal Server Error**: Erro ao buscar os testes.
+--- 
 
----
+#### **GET /load-test/test/:id**
 
-#### c. getLoadTestResults
-Retorna os detalhes de um teste de carga específico.
+Retorna os detalhes de um teste de carga específico, usando o `testId` retornado no agendamento.
 
-##### Path Parameters
-- `id`: O `testId` (UUID) retornado pela requisição de agendamento.
-
-##### Response
-- **200 OK**: Detalhes completos do teste.
+**Resposta (`200 OK`)**
 ```json
 {
   "_id": "652f1b7b3f3e8a1d8f3e8a1d",
@@ -149,63 +160,56 @@ Retorna os detalhes de um teste de carga específico.
   "url": "https://api.exemplo.com/endpoint",
   "requests": 50,
   "concurrency": 5,
-  "result": [
-    {
-      "n": 0,
-      "codeStatus": 200,
-      "responseTime": 150,
-      "status": "Success"
-    }
-  ],
-  "stats": {
-    "successCount": 50,
-    "failedCount": 0,
-    "requestsPerSecond": 45.5,
-    "totalTime": { "min": 120, "max": 180, "avg": 150 },
-    "timeToFirstByte": { "min": 50, "max": 70, "avg": 60 },
-    "timeToLastByte": { "min": 100, "max": 120, "avg": 110 }
-  },
+  "result": [...],
+  "stats": {...},
   "createdAt": "2023-10-17T20:00:00.000Z"
 }
 ```
 - **404 Not Found**: Teste não encontrado. Isso pode significar que o `testId` é inválido ou que o teste ainda está em andamento.
-- **500 Internal Server Error**: Erro ao buscar o teste.
 
----
+--- 
 
-#### d. getTestsByDate
+#### **GET /load-test/by-date**
+
 Retorna os testes realizados dentro de um intervalo de datas.
 
-##### Query Parameters
+**Query Parameters**
 - `startDate`: Data inicial no formato ISO (ex: `2023-10-17`).
 - `endDate`: Data final no formato ISO (ex: `2023-10-18`).
 
-##### Response
-- **200 OK**: Lista de testes no intervalo especificado.
-- **400 Bad Request**: Parâmetros ausentes ou inválidos.
-- **500 Internal Server Error**: Erro ao buscar os testes.
-
----
-
-----
-----
 ## 6. Testes Automatizados
-O projeto utiliza Jest para testes unitários, cobrindo os controllers e a lógica de agendamento.
+
+O projeto utiliza **Jest** para testes unitários e de integração.
+
+- **Testes Unitários**: Focam em componentes isolados (controllers, services) e usam "mocks" para simular dependências. Eles são rápidos e não precisam de serviços externos.
+- **Testes de Integração**: Verificam a interação entre os componentes e os serviços reais (MongoDB, Redis). Eles são mais lentos e requerem um ambiente completo.
 
 ### Como rodar os testes
 
 ```bash
-# Execute todos os testes unitários
-npm test
+# Execute todos os testes (unitários e de integração)
+# Requer MongoDB e Redis rodando localmente
+$ npm test
 
-# Ou rode em modo watch (útil durante o desenvolvimento)
-npm run test:watch
-
+# Rode em modo "watch" (útil durante o desenvolvimento)
+$ npm run test:watch
 ```
 
 ## 7. Configuração
--- Porta padrão: 4000 (pode ser alterada via variável de ambiente PORT).
--- Certifique-se de configurar o arquivo `.env` para variáveis sensíveis.
+
+As configurações da aplicação são gerenciadas por variáveis de ambiente.
+
+1.  Crie um arquivo `.env` na raiz do projeto.
+2.  Copie o conteúdo de `.env.example` para o seu novo arquivo `.env`.
+3.  Altere os valores conforme necessário para o seu ambiente.
+
+**Variáveis Disponíveis:**
+
+- `API_PORT`: Porta em que a API será executada (padrão: `4000`).
+- `MONGO_URI`: String de conexão para o MongoDB.
+- `REDIS_HOST`: Host do servidor Redis.
+- `REDIS_PORT`: Porta do servidor Redis.
 
 ## 8. Licença
+
 Este projeto está licenciado sob a [MIT License](LICENSE).
