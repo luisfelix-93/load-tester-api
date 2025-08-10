@@ -9,7 +9,7 @@ import { ILoadTest } from '../../src/infrastructure/interfaces/ILoadTest';
 
 // Mock das dependências externas
 jest.mock('bullmq');
-jest.mock('../../src/workers/queue', () => ({
+jest.mock('../../src/infrastructure/jobs/queue', () => ({
   loadTestJobsQueue: {
     add: jest.fn(),
     name: 'load-test-jobs'
