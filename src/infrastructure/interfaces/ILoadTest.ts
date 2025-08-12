@@ -7,9 +7,9 @@ export interface ILoadTest {
     concurrency: number;
     result: { 
       n: number; 
-      codeStatus: number; 
+      codeStatus?: number; 
       responseTime: number; 
-      status: string;
+      status?: string;
     }[];
     stats: {
       successCount: number;
