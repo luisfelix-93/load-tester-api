@@ -20,7 +20,7 @@ const ResultSchema = new Schema({
   n: { type: Number, required: true },
   codeStatus: { type: Number, required: true },
   responseTime: { type: Number, required: true },
-  status: { type: String, required: true, default: 'pending' },
+  status: { type: String, default: 'pending' },
   timeToFirstByte: { type: Number },
   timeToLastByte: { type: Number }
 }, { _id: false });
