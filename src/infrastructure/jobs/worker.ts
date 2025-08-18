@@ -4,6 +4,7 @@ import { ILoadTest } from "../interfaces/ILoadTest";
 import { loadTestJobsQueue } from "./queue";
 import { config } from "../config";
 import { LoadTestModel } from "../models/LoadTestModel";
+import { connectMongoDB } from "../database";
 
 export interface ILoadTestWorker {
     sendLoadTest(data: ILoadData): Promise<void>;
@@ -31,6 +32,7 @@ export class LoadTesteWorker implements ILoadTestWorker {
     }
 
     loadTestResult(): Worker<ILoadTest> {
+        connectMongoDB();
         const connectionOpts = { host: config.redis.host, port: config.redis.port };
         console.log('👂 Ouvinte de resultados iniciado...');
 
