@@ -7,3 +7,4 @@ const connectionOpts = {
 };
 
 export const loadTestJobsQueue = new Queue(config.queue.loadTestJobs, {connection: connectionOpts});
+export const notificationQueue = new Queue('notification-queue', {connection: connectionOpts})

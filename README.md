@@ -15,7 +15,8 @@ Este projeto permite agendar testes de carga pesados de forma assíncrona. Ele e
 - [Documentação da API](#5-documentação-da-api)
 - [Testes Automatizados](#6-testes-automatizados)
 - [Configuração](#7-configuração)
-- [Licença](#8-licença)
+- [Monitoramento](#8-monitoramento)
+- [Licença](#9-licença)
 
 ## 1. Funcionalidades
 
@@ -209,7 +210,29 @@ As configurações da aplicação são gerenciadas por variáveis de ambiente.
 - `MONGO_URI`: String de conexão para o MongoDB.
 - `REDIS_HOST`: Host do servidor Redis.
 - `REDIS_PORT`: Porta do servidor Redis.
+- `LOKI_HOST`: URL do servidor Loki para exportação de logs (padrão: `http://localhost:3100`).
 
-## 8. Licença
+## 8. Monitoramento
+
+A aplicação expõe métricas no padrão Prometheus e exporta logs para o Loki, permitindo um monitoramento completo.
+
+### Logs
+
+Os logs são gerenciados com **Winston** e configurados para serem enviados em tempo real para uma instância do **Grafana Loki**.
+
+- **Console**: Em ambiente de desenvolvimento, os logs são exibidos no console com cores para facilitar a leitura.
+- **Loki**: Para produção e staging, os logs são enviados para o Loki, permitindo a centralização, consulta e visualização no Grafana. A integração é feita pelo `winston-loki`.
+
+### Métricas
+
+A API expõe um endpoint `/metrics` com métricas no formato Prometheus, coletadas através do `express-prom-bundle`. Essas métricas incluem:
+
+- `up`: Status da aplicação (1 se estiver online).
+- `http_requests_total`: Contador de requisições HTTP recebidas, com labels para método, rota e status code.
+- `http_requests_duration_seconds`: Histograma da duração das requisições.
+
+Essas métricas podem ser coletadas por um servidor Prometheus para monitoramento de desempenho e saúde da aplicação.
+
+## 9. Licença
 
 Este projeto está licenciado sob a [MIT License](LICENSE).

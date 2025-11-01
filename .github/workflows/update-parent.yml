@@ -45,7 +45,7 @@ jobs:
                 title: "Atualização automática do submódulo ${{ github.repository }}"
                 body: "Este PR atualiza o submódulo  ${{ github.repository }} para o commit mais recent após o merge na branch main."
                 branch: "auto/update-submodule-${{ github.event.after }}"
-                base: "prod"
+                base: "v2"
                 labels: |
                     automation
                     submodule

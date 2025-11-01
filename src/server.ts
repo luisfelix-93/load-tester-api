@@ -3,6 +3,7 @@ import { makeLoadTestRouter } from './routes/loadTest.route';
 import cors from 'cors';
 import { connectMongoDB } from './infrastructure/database';
 import { config } from './infrastructure/config';
+import { metricsMiddleware } from './infrastructure/config/metrics';
 
 async function startServer() {
     const app = express();
@@ -16,6 +17,8 @@ async function startServer() {
     }));
 
     app.use(express.json());
+
+    app.use(metricsMiddleware);
 
     app.use('/load-test', makeLoadTestRouter());
     const PORT = config.APIPort;
